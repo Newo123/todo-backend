@@ -57,33 +57,50 @@ func (h *Response) NoContent() {
 func (h *Response) Error(err error, msg string) {
 	var (
 		statusCode int
+		code       ErrCode
 		logFunc    func(string, ...logger.Field)
 	)
 
 	switch {
 	case errors.Is(err, domain.ErrInvalidArgument):
 		statusCode = http.StatusBadRequest
+		code = ErrCodeInvalidArgument
 		logFunc = h.log.Warn
 	case errors.Is(err, domain.ErrNotFound):
 		statusCode = http.StatusNotFound
+		code = ErrCodeNotFound
 		logFunc = h.log.Debug
 	case errors.Is(err, domain.ErrConflict):
 		statusCode = http.StatusConflict
+		code = ErrCodeConflict
+		logFunc = h.log.Warn
+	case errors.Is(err, domain.ErrAlreadyExists):
+		statusCode = http.StatusConflict
+		code = ErrCodeAlreadyExists
 		logFunc = h.log.Warn
 	case errors.Is(err, domain.ErrUnauthorized):
 		statusCode = http.StatusUnauthorized
+		code = ErrCodeUnauthorized
 		logFunc = h.log.Warn
 	case errors.Is(err, domain.ErrForbidden):
 		statusCode = http.StatusForbidden
+		code = ErrCodeForbidden
 		logFunc = h.log.Warn
 	default:
 		statusCode = http.StatusInternalServerError
+		code = ErrCodeInternal
 		logFunc = h.log.Error
 	}
 
 	logFunc(msg, logger.Error(err))
 
-	h.errorResponse(statusCode, err, msg)
+	response := ErrorResponse{
+		Error:   err.Error(),
+		Message: msg,
+		Code:    code,
+	}
+
+	h.JSON(statusCode, response)
 }
 
 // PanicResponse формирует HTTP 500 при перехвате паники.
@@ -94,14 +111,10 @@ func (h *Response) Panic(p any, msg string) {
 
 	h.log.Error(msg, logger.Error(err))
 
-	h.errorResponse(statusCode, err, msg)
-}
-
-// errorResponse — внутренний метод: собирает ErrorResponse и вызывает JSON
-func (h *Response) errorResponse(statusCode int, err error, msg string) {
 	response := ErrorResponse{
 		Error:   err.Error(),
 		Message: msg,
+		Code:    ErrCodeInternal,
 	}
 
 	h.JSON(statusCode, response)

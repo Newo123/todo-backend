@@ -10,12 +10,17 @@ import (
 
 	_ "github.com/Newo123/todo-backend/docs"
 	"github.com/Newo123/todo-backend/internal/config"
+	usersRepository "github.com/Newo123/todo-backend/internal/features/users/repository/postgres"
+	usersService "github.com/Newo123/todo-backend/internal/features/users/service"
+	usersHTTPHandler "github.com/Newo123/todo-backend/internal/features/users/transport/http"
+	"github.com/Newo123/todo-backend/internal/infrastructure/hasher"
 	"github.com/Newo123/todo-backend/internal/infrastructure/logger"
 	"github.com/Newo123/todo-backend/internal/infrastructure/logger/zap"
 	"github.com/Newo123/todo-backend/internal/infrastructure/postgres/pgx"
 	"github.com/Newo123/todo-backend/internal/infrastructure/redis/goredis"
 	"github.com/Newo123/todo-backend/internal/transport/http/middleware"
 	"github.com/Newo123/todo-backend/internal/transport/http/server"
+	"github.com/alexedwards/argon2id"
 )
 
 // Аннотации для автогенерации Swagger-документации (swaggo/swag).
@@ -68,6 +73,27 @@ func main() {
 	defer redisPool.Close()
 	log.Debug("initializing redis connection pool")
 
+	// Ручное внедрение зависимостей (Dependency Injection):
+	// Repository → Service → HTTP Handler.
+	// Каждый слой знает только об интерфейсе нижележащего.
+	// Это обеспечивает слабую связанность (loose coupling) и тестируемость.
+
+	// Infra helpers
+
+	hasher := hasher.NewArgon2IDHasher(argon2id.DefaultParams)
+
+	// Repositories
+
+	usersRepository := usersRepository.NewRepository(postgresPool)
+
+	// Services
+
+	usersService := usersService.NewService(usersRepository, hasher)
+
+	// HTTP Handlers
+
+	usersHTTPHandler := usersHTTPHandler.NewHTTPTransport(usersService)
+
 	// Собираем HTTP-сервер с цепочкой middleware.
 	// Middleware применяются ко всем маршрутам (Route) в порядке объявления:
 	// CORS → RequestID → Logger → Trace → Panic recovery.
@@ -86,6 +112,7 @@ func main() {
 	// Регистрируем маршруты API v1.
 	// APIVersionRouter автоматически добавляет префикс /api/v1 ко всем путям.
 	routerV1 := server.NewRouter(server.ApiVersion1)
+	routerV1.AddRoutes(usersHTTPHandler.Routes()...)
 
 	httpServer.RegisterAPIRouters(routerV1)
 

@@ -13,6 +13,10 @@ var (
 	// изменения той же записи (HTTP 409).
 	ErrConflict = errors.New("conflict")
 
+	// ErrConflict — конфликт при обновлении, обычно из-за конкурентного
+	// изменения той же записи (HTTP 409).
+	ErrAlreadyExists = errors.New("already exists")
+
 	// ErrUnauthorized - не авторизован (HTTP 401)
 	ErrUnauthorized = errors.New("unauthorized")
 
