@@ -67,10 +67,20 @@ func (l *Logger) Warn(msg string, args ...logger.Field) {
 func (l *Logger) Error(msg string, args ...logger.Field) {
 	l.log(msg, zap.ErrorLevel, args...)
 }
+func (l *Logger) Fatal(msg string, args ...logger.Field) {
+	l.log(msg, zap.FatalLevel, args...)
+	os.Exit(1)
+}
 
-func (l *Logger) With(field ...zap.Field) *Logger {
+func (l *Logger) With(fields ...logger.Field) logger.Logger {
+	zapFields := make([]zap.Field, 0, len(fields))
+
+	for _, field := range fields {
+		zapFields = append(zapFields, zap.Any(field.Key, field.Value))
+	}
+
 	return &Logger{
-		Logger: l.Logger.With(field...),
+		Logger: l.Logger.With(zapFields...),
 		file:   l.file,
 	}
 }

@@ -35,6 +35,14 @@ logs-cleanup: ## env: Очистить файлы логов из out/logs
 		echo "Очистка логов отменена"; \
 	fi;
 
+swagger-gen: ## env: Сгенерировать актуальную Swagger спецификацию
+	@docker compose run --rm swagger \
+		init \
+		-g cmd/api/main.go \
+		-o docs \
+		--parseInternal \
+		-parseDependency
+
 ps: ## env: Посмотреть запущенные Docker Compose сервисы
 	@docker compose ps
 

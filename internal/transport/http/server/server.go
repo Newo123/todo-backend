@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Newo123/todo-backend/docs"
 	"github.com/Newo123/todo-backend/internal/infrastructure/logger"
 	"github.com/Newo123/todo-backend/internal/transport/http/middleware"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 // HTTPServer — обёртка над стандартным net/http, добавляющая:
@@ -60,24 +62,27 @@ func (s *HTTPServer) RegisterRoutes(routes ...Route) {
 	}
 }
 
-// func (s *HTTPServer) RegisterSwagger() {
-// 	s.mux.Handle(
-// 		"GET /swagger/",
-// 		httpSwagger.Handler(
-// 			httpSwagger.URL("/swagger/doc.json"),
-// 			httpSwagger.DefaultModelsExpandDepth(-1),
-// 		),
-// 	)
+// RegisterSwagger регистрирует два маршрута:
+//   - GET /swagger/      — Swagger UI (интерактивная документация)
+//   - GET /swagger/doc.json — спецификация OpenAPI в формате JSON
+func (s *HTTPServer) RegisterSwagger() {
+	s.mux.Handle(
+		"GET /swagger/",
+		httpSwagger.Handler(
+			httpSwagger.URL("/swagger/doc.json"),
+			httpSwagger.DefaultModelsExpandDepth(-1),
+		),
+	)
 
-// 	s.mux.HandleFunc(
-// 		"GET /swagger/doc.json",
-// 		func(w http.ResponseWriter, r *http.Request) {
-// 			w.Header().Set("Content-Type", "application/json")
-// 			w.WriteHeader(http.StatusOK)
-// 			_, _ := w.Write([]byte(docs.SwaggerInfo.ReadDoc()))
-// 		},
-// 	)
-// }
+	s.mux.HandleFunc(
+		"GET /swagger/doc.json",
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(docs.SwaggerInfo.ReadDoc()))
+		},
+	)
+}
 
 // Run запускает HTTP-сервер и блокирует выполнение до получения сигнала завершения.
 //
@@ -103,7 +108,7 @@ func (s *HTTPServer) Run(ctx context.Context) error {
 	go func() {
 		defer close(ch)
 
-		s.log.Warn("start HTTP server", logger.String("addr", s.config.Addr))
+		s.log.Info("start HTTP server", logger.String("addr", s.config.Addr))
 
 		err := server.ListenAndServe()
 
@@ -121,7 +126,7 @@ func (s *HTTPServer) Run(ctx context.Context) error {
 		}
 	case <-ctx.Done():
 		// Получен сигнал завершения — выполняем graceful shutdown.
-		s.log.Warn("shutdown HTTP server...")
+		s.log.Info("shutdown HTTP server...")
 
 		shutdownCtx, cancel := context.WithTimeout(
 			context.Background(),
@@ -136,7 +141,7 @@ func (s *HTTPServer) Run(ctx context.Context) error {
 			return fmt.Errorf("shutdown HTTP server: %w", err)
 		}
 
-		s.log.Warn("HTTP server stopped")
+		s.log.Info("HTTP server stopped")
 	}
 
 	return nil

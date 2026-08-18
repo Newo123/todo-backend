@@ -10,7 +10,7 @@ import (
 	"github.com/Newo123/todo-backend/internal/infrastructure/logger"
 )
 
-// HTTPResponseHandler инкапсулирует логику записи HTTP-ответов.
+// Response инкапсулирует логику записи HTTP-ответов.
 // Хранит логгер и ResponseWriter, чтобы обработчикам не нужно было
 // передавать их каждый раз явно.
 type Response struct {
