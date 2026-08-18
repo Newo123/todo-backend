@@ -1,0 +1,9 @@
+basePath: /api/v1
+host: 127.0.0.1:5050
+info:
+  contact: {}
+  description: Todo Application REST-API scheme
+  title: Golang Todo API
+  version: "1.0"
+paths: {}
+swagger: "2.0"
