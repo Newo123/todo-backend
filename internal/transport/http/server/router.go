@@ -1,0 +1,59 @@
+package server
+
+import (
+	"net/http"
+
+	"github.com/Newo123/todo-backend/internal/transport/http/middleware"
+)
+
+// APIVersion — тип для идентификатора версии API.
+// Использование отдельного типа (не string) делает код явным и защищает от опечаток.
+type APIVersion string
+
+var (
+	ApiVersion1 = APIVersion("v1")
+	ApiVersion2 = APIVersion("v2")
+	ApiVersion3 = APIVersion("v3")
+)
+
+// Router группирует маршруты под единым версионным префиксом /api/v1, /api/v2 и т.д.
+// Поддерживает собственные middleware, применяемые только к маршрутам (Route) этой версии API.
+// Это позволяет, например, добавить аутентификацию только для /api/v2, не трогая /api/v1.
+type Router struct {
+	*http.ServeMux
+	apiVersion APIVersion
+	routes     []Route
+	middleware []middleware.Middleware
+}
+
+// Router создаёт роутер для заданной версии API.
+// Необязательные middleware будут применяться ко всем маршрутам этой версии.
+func NewRouter(v APIVersion, m ...middleware.Middleware) *Router {
+	return &Router{
+		ServeMux:   http.NewServeMux(),
+		apiVersion: v,
+		middleware: m,
+	}
+}
+
+// AddRoutes добавляет маршруты в роутер.
+func (r *Router) AddRoutes(routes ...Route) {
+	r.routes = append(r.routes, routes...)
+}
+
+// Handlers формирует мапу «паттерн маршрута → обработчик» для регистрации в http.ServeMux.
+// Паттерн строится как: "METHOD /api/v1/path".
+// Middleware роутера (Router) оборачивают middleware маршрута (Route) снаружи.
+func (r *Router) Handlers() map[string]http.Handler {
+	handlers := make(map[string]http.Handler, len(r.routes))
+
+	for _, route := range r.routes {
+		// Формируем полный паттерн: "GET /api/v1/tasks", "POST /api/v1/users" и т.д.
+		pattern := route.Method + " /api/" + string(r.apiVersion) + route.Path
+		handler := middleware.ChainMiddleware(route.WithMiddleware(), r.middleware...)
+
+		handlers[pattern] = handler
+	}
+
+	return handlers
+}

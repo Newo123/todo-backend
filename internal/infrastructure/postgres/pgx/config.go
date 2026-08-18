@@ -7,6 +7,9 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
+// Config хранит параметры подключения к PostgreSQL.
+// Все поля читаются из переменных окружения с префиксом "POSTGRES_":
+// POSTGRES_HOST, POSTGRES_PORT, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, POSTGRES_TIMEOUT.
 type Config struct {
 	Host     string        `envconfig:"HOST" required:"true"`
 	Port     string        `envconfig:"PORT" default:"5432"`
@@ -16,6 +19,7 @@ type Config struct {
 	Timeout  time.Duration `envconfig:"TIMEOUT" required:"true"`
 }
 
+// NewConfig читает конфигурацию сервера из переменных окружения.
 func NewConfig() (Config, error) {
 	var config Config
 	if err := envconfig.Process("POSTGRES", &config); err != nil {
@@ -25,6 +29,7 @@ func NewConfig() (Config, error) {
 	return config, nil
 }
 
+// NewConfigMust — «Must»-вариант конструктора: паникует при ошибке.
 func NewConfigMust() Config {
 	config, err := NewConfig()
 	if err != nil {

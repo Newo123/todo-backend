@@ -7,6 +7,8 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
+// Config — конфигурация Redis-клиента.
+// Все поля читаются из переменных окружения с префиксом REDIS_.
 type Config struct {
 	Host     string        `envconfig:"HOST" required:"true"`
 	Port     string        `envconfig:"PORT" default:"6379"`
@@ -15,6 +17,7 @@ type Config struct {
 	TTL      time.Duration `envconfig:"TTL" default:"5m"`
 }
 
+// NewConfig читает конфигурацию сервера из переменных окружения.
 func NewConfig() (Config, error) {
 	var config Config
 
@@ -25,6 +28,7 @@ func NewConfig() (Config, error) {
 	return config, nil
 }
 
+// NewConfigMust — «Must»-вариант конструктора: паникует при ошибке.
 func NewConfigMust() Config {
 	config, err := NewConfig()
 	if err != nil {
