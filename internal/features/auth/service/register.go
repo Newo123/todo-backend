@@ -15,13 +15,15 @@ func (s *Service) Register(ctx context.Context, params auth.RegisterParams) erro
 		3. Отдаем nil ответ
 	*/
 	usersServiceParams := users.CreateParams{
-		Email:    params.Email,
-		Password: params.Password,
-		FullName: params.FullName,
+		Email:         params.Email,
+		Password:      params.Password,
+		FullName:      params.FullName,
+		EmailVerified: false,
 	}
-	user, err := s.usersService.Create(ctx, usersServiceParams)
+	_, err := s.usersService.Create(ctx, usersServiceParams)
 	if err != nil {
 		return err
 	}
 
+	return nil
 }
