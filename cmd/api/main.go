@@ -10,12 +10,17 @@ import (
 
 	_ "github.com/Newo123/todo-backend/docs"
 	"github.com/Newo123/todo-backend/internal/config"
+	authService "github.com/Newo123/todo-backend/internal/features/auth/service"
+	authHTTPHandler "github.com/Newo123/todo-backend/internal/features/auth/transport/http"
+	mailService "github.com/Newo123/todo-backend/internal/features/mail/service"
 	usersRepository "github.com/Newo123/todo-backend/internal/features/users/repository/postgres"
 	usersService "github.com/Newo123/todo-backend/internal/features/users/service"
 	usersHTTPHandler "github.com/Newo123/todo-backend/internal/features/users/transport/http"
 	"github.com/Newo123/todo-backend/internal/infrastructure/hasher"
+	"github.com/Newo123/todo-backend/internal/infrastructure/jwt"
 	"github.com/Newo123/todo-backend/internal/infrastructure/logger"
 	"github.com/Newo123/todo-backend/internal/infrastructure/logger/zap"
+	"github.com/Newo123/todo-backend/internal/infrastructure/mail/smtp"
 	"github.com/Newo123/todo-backend/internal/infrastructure/postgres/pgx"
 	"github.com/Newo123/todo-backend/internal/infrastructure/redis/goredis"
 	"github.com/Newo123/todo-backend/internal/transport/http/middleware"
@@ -81,6 +86,8 @@ func main() {
 	// Infra helpers
 
 	hasher := hasher.NewArgon2IDHasher(argon2id.DefaultParams)
+	mailer := smtp.NewMailer(smtp.NewConfigMust())
+	jwtManager := jwt.NewGolangJWT(jwt.NewConfigMust())
 
 	// Repositories
 
@@ -88,11 +95,13 @@ func main() {
 
 	// Services
 
+	mailService := mailService.NewService(mailer)
 	usersService := usersService.NewService(usersRepository, hasher)
-
+	authService := authService.NewService(usersService, jwtManager, mailService)
 	// HTTP Handlers
 
 	usersHTTPHandler := usersHTTPHandler.NewHTTPTransport(usersService)
+	authHTTPHandler := authHTTPHandler.NewHTTPHandler(authService)
 
 	// Собираем HTTP-сервер с цепочкой middleware.
 	// Middleware применяются ко всем маршрутам (Route) в порядке объявления:
@@ -113,6 +122,7 @@ func main() {
 	// APIVersionRouter автоматически добавляет префикс /api/v1 ко всем путям.
 	routerV1 := server.NewRouter(server.ApiVersion1)
 	routerV1.AddRoutes(usersHTTPHandler.Routes()...)
+	routerV1.AddRoutes(authHTTPHandler.Routes()...)
 
 	httpServer.RegisterAPIRouters(routerV1)
 

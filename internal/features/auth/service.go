@@ -11,13 +11,13 @@ type Service interface {
 		ctx context.Context,
 		params RegisterParams,
 	) error
-	Login(
-		ctx context.Context,
-		params LoginParams,
-	) (LoginResult, error)
-	RefreshToken(
-		ctx context.Context,
-	) error
+	// Login(
+	// 	ctx context.Context,
+	// 	params LoginParams,
+	// ) (LoginResult, error)
+	// RefreshToken(
+	// 	ctx context.Context,
+	// ) error
 }
 
 type RegisterParams struct {

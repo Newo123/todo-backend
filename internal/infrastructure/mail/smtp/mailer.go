@@ -2,6 +2,7 @@ package smtp
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/smtp"
@@ -27,18 +28,23 @@ func NewMailer(config Config) *Mailer {
 //
 // Если message.From не указан, используется адрес отправителя
 // из SMTP-конфигурации.
-func (m *Mailer) Send(ctx context.Context, message mail.Message) error {
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	default:
+func (m *Mailer) Send(
+	ctx context.Context,
+	message mail.Message,
+) error {
+	if err := ctx.Err(); err != nil {
+		return err
 	}
 
-	// Если отправитель не указан в сообщении,
-	// используем адрес отправителя из конфигурации SMTP.
 	if message.From == "" {
 		message.From = m.config.From
 	}
+
+	client, err := m.dial(ctx)
+	if err != nil {
+		return fmt.Errorf("dial SMTP server: %w", err)
+	}
+	defer client.Close()
 
 	auth := smtp.PlainAuth(
 		"",
@@ -47,27 +53,18 @@ func (m *Mailer) Send(ctx context.Context, message mail.Message) error {
 		m.config.Host,
 	)
 
-	client, err := m.dial(ctx)
-	if err != nil {
-		return fmt.Errorf("dial SMTP server: %w", err)
-	}
-	defer client.Close()
-
 	if err := client.Auth(auth); err != nil {
 		return fmt.Errorf("SMTP auth: %w", err)
 	}
 
-	// MAIL FROM — SMTP envelope sender.
 	if err := client.Mail(message.From); err != nil {
 		return fmt.Errorf("SMTP MAIL FROM: %w", err)
 	}
 
-	// RCPT TO — SMTP envelope recipient.
 	if err := client.Rcpt(message.To); err != nil {
 		return fmt.Errorf("SMTP RCPT TO: %w", err)
 	}
 
-	// DATA переводит SMTP-сессию в режим передачи содержимого письма.
 	writer, err := client.Data()
 	if err != nil {
 		return fmt.Errorf("SMTP DATA: %w", err)
@@ -79,13 +76,10 @@ func (m *Mailer) Send(ctx context.Context, message mail.Message) error {
 		return fmt.Errorf("write SMTP message: %w", err)
 	}
 
-	// Закрытие writer сообщает SMTP-серверу,
-	// что содержимое письма полностью передано.
 	if err := writer.Close(); err != nil {
 		return fmt.Errorf("close SMTP message: %w", err)
 	}
 
-	// Корректно завершаем SMTP-сессию.
 	if err := client.Quit(); err != nil {
 		return fmt.Errorf("quit SMTP connection: %w", err)
 	}
@@ -115,6 +109,20 @@ func (m *Mailer) dial(ctx context.Context) (*smtp.Client, error) {
 		_ = conn.Close()
 
 		return nil, err
+	}
+
+	if ok, _ := client.Extension("STARTTLS"); !ok {
+		_ = client.Close()
+
+		return nil, fmt.Errorf("SMTP server does not support STARTTLS")
+	}
+
+	if err := client.StartTLS(&tls.Config{
+		ServerName: m.config.Host,
+	}); err != nil {
+		_ = client.Close()
+
+		return nil, fmt.Errorf("SMTP STARTTLS: %w", err)
 	}
 
 	return client, nil

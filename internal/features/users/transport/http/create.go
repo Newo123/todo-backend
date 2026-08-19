@@ -10,10 +10,9 @@ import (
 )
 
 type CreateRequest struct {
-	Email         string  `json:"email" validate:"required,email"`
-	EmailVerified bool    `json:"email_verified"`
-	Password      string  `json:"password" validate:"required,min=6,max=100"`
-	FullName      *string `json:"full_name" validate:"omitempty,min=3,max=100"`
+	Email    string  `json:"email" validate:"required,email"`
+	Password string  `json:"password" validate:"required,min=6,max=100"`
+	FullName *string `json:"full_name" validate:"omitempty,min=3,max=100"`
 }
 
 type CreateResponse UserDTOResponse
@@ -34,7 +33,7 @@ func (h *HTTPHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Email:         body.Email,
 		Password:      body.Password,
 		FullName:      body.FullName,
-		EmailVerified: body.EmailVerified,
+		EmailVerified: true,
 	}
 	serviceResult, err := h.service.Create(request.Context(), serviceParams)
 	if err != nil {

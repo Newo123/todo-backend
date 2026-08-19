@@ -28,16 +28,5 @@ func (s *Service) Create(ctx context.Context, params users.CreateParams) (users.
 		return users.CreateResult{}, err
 	}
 
-	if !user.EmailVerified {
-		go func() {
-			if err := s.mailService.SendVerificationEmail(
-				context.Background(),
-				user,
-			); err != nil {
-
-			}
-		}()
-	}
-
 	return users.CreateResult{User: user}, nil
 }

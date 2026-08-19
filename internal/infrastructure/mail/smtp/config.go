@@ -11,7 +11,7 @@ type Config struct {
 	Port     string `envconfig:"PORT" default:"587"`
 	User     string `envconfig:"USER" required:"true"`
 	Password string `envconfig:"PASSWORD" required:"true"`
-	From     string `envconfig:"From" required:"true"`
+	From     string `envconfig:"FROM" required:"true"`
 }
 
 func NewConfig() (Config, error) {
