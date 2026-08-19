@@ -40,6 +40,11 @@ func (h *Response) OK(body any) {
 	h.JSON(http.StatusOK, body)
 }
 
+// Created обертка над методом JSON со статусом 201
+func (h *Response) Created(body any) {
+	h.JSON(http.StatusCreated, body)
+}
+
 // NoContentResponse отправляет HTTP 204 No Content — используется при успешном DELETE.
 func (h *Response) NoContent() {
 	h.rw.WriteHeader(http.StatusNoContent)
