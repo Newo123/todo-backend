@@ -14,7 +14,10 @@ func (s *Service) Create(ctx context.Context, params users.CreateParams) (users.
 	}
 
 	user, err := domain.CreateUser(
-		params.Email, passwordHash, params.FullName,
+		params.Email,
+		passwordHash,
+		params.FullName,
+		params.EmailVerified,
 	)
 	if err != nil {
 		return users.CreateResult{}, err
@@ -23,6 +26,17 @@ func (s *Service) Create(ctx context.Context, params users.CreateParams) (users.
 	user, err = s.repo.Create(ctx, user)
 	if err != nil {
 		return users.CreateResult{}, err
+	}
+
+	if !user.EmailVerified {
+		go func() {
+			if err := s.mailService.SendVerificationEmail(
+				context.Background(),
+				user,
+			); err != nil {
+
+			}
+		}()
 	}
 
 	return users.CreateResult{User: user}, nil

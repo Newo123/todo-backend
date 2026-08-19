@@ -47,6 +47,7 @@ func CreateUser(
 	email string,
 	passwordHash string,
 	fullName *string,
+	emailVerified bool,
 ) (User, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
@@ -59,7 +60,7 @@ func CreateUser(
 		id,
 		int64(1),
 		email,
-		false,
+		emailVerified,
 		passwordHash,
 		fullName,
 		now,

@@ -28,9 +28,10 @@ type Service interface {
 
 // Create
 type CreateParams struct {
-	Email    string
-	Password string
-	FullName *string
+	Email         string
+	Password      string
+	FullName      *string
+	EmailVerified bool
 }
 type CreateResult struct {
 	User domain.User
